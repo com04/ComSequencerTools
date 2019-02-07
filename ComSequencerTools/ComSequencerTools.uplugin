@@ -1,0 +1,27 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "ComSequencerTools",
+	"Description": "",
+	"Category": "Other",
+	"CreatedBy": "com04",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EngineVersion": "4.21.0",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "ComSequencerTools",
+			"Type": "EditorNoCommandlet",
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64",
+			]
+		}
+	]
+}
