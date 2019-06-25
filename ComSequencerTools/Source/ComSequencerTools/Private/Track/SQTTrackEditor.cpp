@@ -25,6 +25,7 @@
 #include "Sections/MovieSceneEventSection.h"
 #include "SequencerUtilities.h"
 #include "MovieSceneSequenceEditor.h"
+#include "Sections/MovieSceneEventTriggerSection.h"
 
 #define LOCTEXT_NAMESPACE "FSQTTrackEditor"
 
@@ -85,6 +86,68 @@ void FSQTTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, con
 	}
 }
 
+void FSQTTrackEditor::BuildTrackContextMenu(FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track)
+{
+	UMovieSceneEventTrack* EventTrack = CastChecked<UMovieSceneEventTrack>(Track);
+	const TArray<UMovieSceneSection*>& Sections = EventTrack->GetAllSections();
+	for (auto Section : Sections)
+	{
+		if (Section->IsA<UMovieSceneEventTriggerSection>())
+		{
+			return;
+		}
+	}
+	UProperty* EventPositionProperty = FindField<UProperty>(Track->GetClass(), GET_MEMBER_NAME_STRING_CHECKED(UMovieSceneEventTrack, EventPosition));
+
+	/** Specific details customization for the event track */
+	class FEventTrackCustomization : public IDetailCustomization
+	{
+	public:
+		virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override
+		{
+			DetailBuilder.HideCategory("Track");
+			DetailBuilder.HideCategory("General");
+
+			IDetailCategoryBuilder& Category = DetailBuilder.EditCategory("TrackEvent");
+			Category.AddProperty("EventReceivers").ShouldAutoExpand(true);
+		}
+	};
+
+	auto PopulateSubMenu = [this, EventTrack](FMenuBuilder& SubMenuBuilder)
+	{
+		FPropertyEditorModule& PropertyEditor = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+		// Create a details view for the track
+		FDetailsViewArgs DetailsViewArgs(false,false,false,FDetailsViewArgs::HideNameArea,true);
+		DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Automatic;
+		DetailsViewArgs.bShowOptions = false;
+		DetailsViewArgs.ColumnWidth = 0.55f;
+
+		TSharedRef<IDetailsView> DetailsView = PropertyEditor.CreateDetailView(DetailsViewArgs);
+		
+		// Register the custom type layout for the class
+		FOnGetDetailCustomizationInstance CreateInstance = FOnGetDetailCustomizationInstance::CreateLambda(&MakeShared<FEventTrackCustomization>);
+		DetailsView->RegisterInstancedCustomPropertyLayout(UMovieSceneEventTrack::StaticClass(), CreateInstance);
+
+		GetSequencer()->OnInitializeDetailsPanel().Broadcast(DetailsView, GetSequencer().ToSharedRef());
+
+		// Assign the object
+		DetailsView->SetObject(EventTrack, true);
+
+		// Add it to the menu
+		TSharedRef< SWidget > DetailsViewWidget =
+			SNew(SBox)
+			.MaxDesiredHeight(400.0f)
+			.WidthOverride(450.0f)
+		[
+			DetailsView
+		];
+
+		SubMenuBuilder.AddWidget(DetailsViewWidget, FText(), true, false);
+	};
+
+	MenuBuilder.AddSubMenu(LOCTEXT("Properties_MenuText", "Properties"), FText(), FNewMenuDelegate::CreateLambda(PopulateSubMenu));
+}
 
 
 
